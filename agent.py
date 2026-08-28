@@ -1,7 +1,7 @@
 """Agent core — vòng lặp agent: model ↔ tools ↔ trả lời."""
 import json
 from openai import OpenAI
-from config import GEMINI_KEY, GEMINI_BASE, DEEPSEEK_KEY, DEEPSEEK_BASE, MODELS
+from config import GEMINI_KEY, API_BASE, MODELS
 from memory import nho, nho_gi, memory_text
 from lich_hoc import them_lop, them_buoi, doi_buoi, them_ngoai_le, xoa_ngoai_le, lich_text
 
@@ -217,11 +217,7 @@ def chay_tool(name: str, args: dict) -> str:
     return f"Tool '{name}' không tồn tại"
 
 # ── 3. Vòng lặp agent — trái tim của toàn bộ hệ thống ──
-# 2 clients: DeepSeek (trả phí, không giới hạn) + Gemini (free, giới hạn 20/ngày/model)
-clients = {
-    "deepseek": OpenAI(base_url=DEEPSEEK_BASE, api_key=DEEPSEEK_KEY),
-    "gemini": OpenAI(base_url=GEMINI_BASE, api_key=GEMINI_KEY),
-}
+client = OpenAI(base_url=API_BASE, api_key=GEMINI_KEY)
 
 def chay_agent(noi_dung_user: str, max_vong: int = 5) -> str:
     # messages là "cuộc trò chuyện" — đầy đủ mọi thứ model cần biết
@@ -238,19 +234,19 @@ def chay_agent(noi_dung_user: str, max_vong: int = 5) -> str:
 
     for i in range(max_vong):
         # Bước A: hỏi model — trả lời hoặc gọi tool?
-        # Failover: lỗi model này (quota/hết tiền) → thử model kế tiếp trong MODELS
+        # Failover: hết quota model này (429) → thử model kế tiếp trong MODELS
         resp = None
-        for model, nguon in MODELS:
+        for model in MODELS:
             try:
-                resp = clients[nguon].chat.completions.create(
+                resp = client.chat.completions.create(
                     model=model,
                     messages=messages,
                     tools=TOOLS,
                 )
                 break  # gọi thành công, dùng model này
             except Exception as e:
-                is_quota = "429" in str(e) or "quota" in str(e).lower() or "RESOURCE_EXHAUSTED" in str(e) or "insufficient" in str(e).lower()
-                print(f"  ⚠️ Model {model} ({nguon}) lỗi: {str(e)[:80]}")
+                is_quota = "429" in str(e) or "quota" in str(e).lower() or "RESOURCE_EXHAUSTED" in str(e)
+                print(f"  ⚠️ Model {model} lỗi: {str(e)[:80]}")
                 if not is_quota:
                     # Lỗi khác (không phải quota) — đừng đổi model, báo luôn
                     raise e
