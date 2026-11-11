@@ -1,0 +1,13 @@
+name: hermes-shadow-clone
+version: "1.0.0"
+description: "Parallel Gemini Shadow-Clone Swarm & Second-Opinion Arena for Hermes Agent with automatic quota failover and optional Telegram battle reports."
+author: "NotSusOk"
+license: "MIT"
+requires_env:
+  - GEMINI_API_KEY
+provides_tools:
+  - spawn_shadow_clones
+  - shadow_verify_claim
+  - shadow_arena_stats
+provides_hooks:
+  - post_tool_call

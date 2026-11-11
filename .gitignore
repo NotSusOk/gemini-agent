@@ -1,0 +1,7 @@
+config.py
+memory.json
+lich_hoc.json
+__pycache__/
+*.py[cod]
+.DS_Store
+.env
